@@ -1,9 +1,11 @@
 # -*- coding: cp932 -*-
 
+require 'words.rb'
+
 class KlassWListTable
   def initialize
     @table = []
-    (1..7).each do |n|
+    (1..20).each do |n|
       @table[n] = Array.new
     end
   end
@@ -15,20 +17,31 @@ class KlassWListTable
   def get_word(n)
     wlist = @table[n]
     lsiz = wlist.size
-    wlist[rand(lsiz)]
+    if lsiz == 0 then
+      nil
+    else
+      wlist[rand(lsiz)]
+    end
   end
 end
 
 class Word
-  def initiailize(word, klass)
+  def initiailize(word, size, klass)
+    @size = size
     @word = word
     @klass = klass
   end
 
   def get_word(n)
-    @word
+    if @size == n then
+      @word
+    else
+      nil
+    end
   end
 end
+
+KlassPos = {:Noum => 0, :Verb => 1, :Adj => 2, :Postp => 3}
 
 Klasses = {
   :Noum => KlassWListTable.new,
@@ -38,56 +51,94 @@ Klasses = {
 }
 
 class TranslateTable
-  def initalize(word)
+  TranslateKlassInit = [
+    # :Noum, :Verb, :Adj, :Postp
+      [1,      3,    1,     5],    # Noum
+      [5,      1,    5,     0],    # Verb
+      [5,      1,    1,     1],    # Adj
+      [5,      3,    5,     1],    # Postp
+  ]
+  
+  def initialize(word)
     @word = word
-    @table = []
+    @klass = WORD_TABLE[word][1]
+    @table = {}
     @total = 0
+    Klasses.each do |tokl, tab|
+      fmpos = KlassPos[@klass]
+      topos = KlassPos[tokl]
+      n = TranslateKlassInit[fmpos][topos]
+      @table[tab] = n
+      @total += n
+    end
   end
-
+  
   def add(w_or_tab, weight = 1) 
     @total += weight
-    @table.push [w_or_tab, weight]
+    @table[w_or_tab] = weight
   end
 
+  def study(toword, val)
+    toklnm = WORD_TABLE[toword][1]
+    toklass = Klasses[toklnm]
+
+    w = @table[toklass]
+    w0 = w + val
+    if w0 < 0 then
+      w0 = 0
+    end
+    @total += (w0 - w)
+    @table[toklass] = w0
+  end
+  
   def get_next_word(n)
     wc = 0
     @table.each do |wot, weight|
       wc += weight
-      if rand(@total) < wc then
-        return wot.get_word(n)
+      if rand(@total) <= wc then
+        wd = wot.get_word(n)
+        if wd then
+          return wd
+        end
       end
     end
     raise "Internal error maybe bugs"
   end
 end
 
-WORD_TABLE = [
-  ["山", 2, :Noum],
-  ["川", 2, :Noum],
-  ["列車", 3, :Noum],
-  ["自動車", 4, :Noum],
-  ["男", 3, :Noum],
-  ["女", 3, :Noum],
-  ["猫", 2, :Noum],
-  ["犬", 2, :Noum],
-
-  ["走る", 3, :Verb],
-  ["歩く", 3, :Verb],
-  ["燃える", 3, :Verb],
-  ["流れる", 4, :Verb],
-
-  ["白い", 3, :Adj],
-  ["赤い", 3, :Adj],
-  ["美しい", 4, :Adj],
-
-  ["は", 1, :Postp],
-  ["が", 1, :Postp],
-  ["の", 1, :Postp],
-  ["と", 1, :Postp],
-]
-
-WORD_TABLE.each do |word, size, klass|
-  Klasses[klass].add(word, size)
+class TankaGen
+  def initialize
+    @translate_table = {}
+    WORD_TABLE.each do |word, attr|
+      size = attr[0]
+      klass = attr[1]
+      Klasses[klass].add(word, size)
+      @translate_table[word] = TranslateTable.new(word)
+    end
+  end
+  
+  def gen_ku(n)
+    prev_word = nil
+    result = ""
+    rest = n
+    while rest > 0 do
+      clen = 0
+      word = nil
+      begin
+        clen = rand(rest) + 1
+        if prev_word then
+          word = @translate_table[prev_word].get_next_word(clen)
+        else
+          word = Klasses[:Noum].get_word(clen)
+        end
+      end until word 
+      prev_word = word
+      result += word
+      rest -= clen
+    end
+    
+    result
+  end
 end
 
-p Klasses[:Noum].get_word(3)
+print TankaGen.new.gen_ku(10)
