@@ -1,4 +1,5 @@
 # -*- coding: cp932 -*-
+
 WORD_TABLE = {
 'トップ' => [ 3,:Noum], 
 'ログイン' => [ 4,:Noum], 

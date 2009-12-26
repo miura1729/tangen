@@ -2,7 +2,7 @@
 
 require 'words.rb'
 
-class KlassWListTable
+class CategoryWListTable
   def initialize
     @table = []
     (1..20).each do |n|
@@ -26,10 +26,10 @@ class KlassWListTable
 end
 
 class Word
-  def initiailize(word, size, klass)
+  def initialize(word, size, category)
     @size = size
     @word = word
-    @klass = klass
+    @category = category
   end
 
   def get_word(n)
@@ -39,19 +39,21 @@ class Word
       nil
     end
   end
+
+  attr :word
 end
 
-KlassPos = {:Noum => 0, :Verb => 1, :Adj => 2, :Postp => 3}
+CategoryPos = {:Noum => 0, :Verb => 1, :Adj => 2, :Postp => 3}
 
-Klasses = {
-  :Noum => KlassWListTable.new,
-  :Verb => KlassWListTable.new,
-  :Adj => KlassWListTable.new,
-  :Postp => KlassWListTable.new,
+Categories = {
+  :Noum => CategoryWListTable.new,
+  :Verb => CategoryWListTable.new,
+  :Adj => CategoryWListTable.new,
+  :Postp => CategoryWListTable.new,
 }
 
 class TranslateTable
-  TranslateKlassInit = [
+  TranslateCategoryInit = [
     # :Noum, :Verb, :Adj, :Postp
       [1,      3,    1,     5],    # Noum
       [5,      1,    5,     0],    # Verb
@@ -61,13 +63,14 @@ class TranslateTable
   
   def initialize(word)
     @word = word
-    @klass = WORD_TABLE[word][1]
+    @towords = {}
+    @category = WORD_TABLE[word][1]
     @table = {}
     @total = 0
-    Klasses.each do |tokl, tab|
-      fmpos = KlassPos[@klass]
-      topos = KlassPos[tokl]
-      n = TranslateKlassInit[fmpos][topos]
+    Categories.each do |tokl, tab|
+      fmpos = CategoryPos[@category]
+      topos = CategoryPos[tokl]
+      n = TranslateCategoryInit[fmpos][topos]
       @table[tab] = n
       @total += n
     end
@@ -78,17 +81,34 @@ class TranslateTable
     @table[w_or_tab] = weight
   end
 
-  def study(toword, val)
-    toklnm = WORD_TABLE[toword][1]
-    toklass = Klasses[toklnm]
+  def study_word(toword, val)
+    tocatenm = WORD_TABLE[toword][1]
+    tocategory = Categories[tocatenm]
 
-    w = @table[toklass]
+    w = @table[tocategory]
     w0 = w + val
     if w0 < 0 then
       w0 = 0
     end
     @total += (w0 - w)
-    @table[toklass] = w0
+    @table[tocategory] = w0
+  end
+
+  def study_category(toword, val)
+    if @towords[toword] == nil then
+      @towords[toword] = Word.new(toword, *WORD_TABLE[toword])
+    end
+    w = @table[@towords[toword]] || 0
+    w0 = w + val
+    if w0 < 0 then
+      w0 = 0
+    end
+    @total += (w0 - w)
+    @table[@towords[toword]] = w0
+  end
+
+  def dump
+    p @table
   end
   
   def get_next_word(n)
@@ -111,15 +131,15 @@ class TankaGen
     @translate_table = {}
     WORD_TABLE.each do |word, attr|
       size = attr[0]
-      klass = attr[1]
-      Klasses[klass].add(word, size)
+      cate = attr[1]
+      Categories[cate].add(word, size)
       @translate_table[word] = TranslateTable.new(word)
     end
   end
   
   def gen_ku(n)
     prev_word = nil
-    result = ""
+    result = []
     rest = n
     while rest > 0 do
       clen = 0
@@ -129,16 +149,61 @@ class TankaGen
         if prev_word then
           word = @translate_table[prev_word].get_next_word(clen)
         else
-          word = Klasses[:Noum].get_word(clen)
+          word = Categories[:Noum].get_word(clen)
         end
       end until word 
       prev_word = word
-      result += word
+      result.push word
       rest -= clen
     end
     
     result
   end
+
+  def study(w0, w1, weight)
+    @translate_table[w0].study_word(w1, weight)
+    @translate_table[w0].study_category(w1, weight)
+    weight2 = Math.sqrt(weight.abs)
+    if weight < 0 then
+      weight2 = -weight2
+    end
+    wcate = WORD_TABLE[w0][1]
+    WORD_TABLE.each do |word, info|
+      if info[1] == wcate then
+        @translate_table[word].study_category(w1, weight2)
+      end
+    end
+  end
+
+  def dump
+    @translate_table.each {|word, tb| tb.dump}
+  end
 end
 
-print TankaGen.new.gen_ku(10)
+tg = TankaGen.new
+tg.study("心", "という", 5)
+tg.study("伊", "喜ん", -5)
+tg.study("タグ", "問題", 0)
+tg.study("拍子", "を", 5)
+tg.study("みうら", "いい", 2)
+tg.study("いい", "詐欺", 4)
+tg.study("そ", "安藤", -5)
+tg.study("か", "く", -4)
+tg.study("さん", "学", -5)
+tg.study("を", "う", -5)
+tg.study("生活", "う", -5)
+tg.study("ハウス", "を", 5)
+tg.study("を", "ござい", -5)
+tg.study("ピックアップ", "い", -5)
+tg.study("才能", "て", 3)
+tg.study("いい", "だけ", 2)
+tg.study("大笑い", "を", 3)
+tg.study("いい", "伊", -4)
+tg.study("ライフ", "見", -4)
+tg.study("見", "詩", -3)
+# tg.dump
+print tg.gen_ku(5)
+print tg.gen_ku(7)
+print tg.gen_ku(5)
+print tg.gen_ku(7)
+print tg.gen_ku(7)
