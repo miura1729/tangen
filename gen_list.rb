@@ -10,12 +10,27 @@ File.foreach('words') do |lin|
     case klass
     when /–¼Œ/
       klsn = :Noum
+      case lina[1]
+      when /”ñ©—§/
+        klsn = :Noum_Hijiritu
+      end
+
     when /“®Œ/
       klsn = :Verb
+      case lina[1]
+      when /”ñ©—§/
+        klsn = :Verb_Hijiritu
+      end
+
     when /•Œ/
       klsn = :Postp
+
     when /Œ`—eŒ/
       klsn = :Adj
+      case lina[1]
+      when /”ñ©—§/
+        klsn = :Adj_Hijiritu
+      end
     end
     if klsn then
       list[nm] = [sz, klsn.inspect]
@@ -23,7 +38,11 @@ File.foreach('words') do |lin|
   end
 end
 
+print "# -*- coding: cp932 -*-\n"
+print "WORD_TABLE = {\n"
+
 list.each do |nm, rest|
   print "'#{nm}' => [ #{rest.join(',')}], \n"
 end
+print "}\n"
 

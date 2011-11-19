@@ -43,22 +43,29 @@ class Word
   attr :word
 end
 
-CategoryPos = {:Noum => 0, :Verb => 1, :Adj => 2, :Postp => 3}
+CategoryPos = {:Noum => 0, :Verb => 1, :Adj => 2, :Postp => 3,
+               :Noum_Hijiritu => 4, :Verb_Hijiritu => 5, :Adj_Hijiritu => 6}
 
 Categories = {
   :Noum => CategoryWListTable.new,
   :Verb => CategoryWListTable.new,
   :Adj => CategoryWListTable.new,
   :Postp => CategoryWListTable.new,
+  :Noum_Hijiritu => CategoryWListTable.new,
+  :Verb_Hijiritu => CategoryWListTable.new,
+  :Adj_Hijiritu => CategoryWListTable.new,
 }
 
 class TranslateTable
   TranslateCategoryInit = [
-    # :Noum, :Verb, :Adj, :Postp
-      [1,      3,    1,     5],    # Noum
-      [5,      1,    5,     0],    # Verb
-      [5,      1,    1,     1],    # Adj
-      [5,      3,    5,     1],    # Postp
+    # :Noum, :Verb, :Adj, :Postp :Norm_H :Verb_H :Adj_H
+      [1,      3,    1,     5,    4,      0,      0],    # Noum
+      [5,      1,    5,     0,    0,      4,      0],    # Verb
+      [5,      1,    1,     0,    0,      0,      4],    # Adj
+      [5,      3,    1,     0,    0,      0,      0],    # Postp
+      [1,      3,    1,     5,    0,      0,      0],    # Noum_Hijiritu
+      [5,      1,    5,     0,    0,      0,      0],    # Verb_Hijiritu
+      [5,      1,    1,     0,    0,      0,      0],    # Adj_Hijiritu
   ]
   
   def initialize(word)
@@ -113,9 +120,10 @@ class TranslateTable
   
   def get_next_word(n)
     wc = 0
+    rnum = rand(@total)
     @table.each do |wot, weight|
       wc += weight
-      if rand(@total) <= wc then
+      if rnum <= wc then
         wd = wot.get_word(n)
         if wd then
           return wd
@@ -145,7 +153,7 @@ class TankaGen
       clen = 0
       word = nil
       begin
-        clen = rand(rest) + 1
+        clen = (rand(rest / 2) + rand((rest - 1) / 2) + 1).to_i
         if prev_word then
           word = @translate_table[prev_word].get_next_word(clen)
         else
@@ -181,6 +189,7 @@ class TankaGen
 end
 
 tg = TankaGen.new
+=begin
 tg.study("心", "という", 5)
 tg.study("伊", "喜ん", -5)
 tg.study("タグ", "問題", 0)
@@ -201,9 +210,16 @@ tg.study("大笑い", "を", 3)
 tg.study("いい", "伊", -4)
 tg.study("ライフ", "見", -4)
 tg.study("見", "詩", -3)
-# tg.dump
-print tg.gen_ku(5)
-print tg.gen_ku(7)
-print tg.gen_ku(5)
-print tg.gen_ku(7)
-print tg.gen_ku(7)
+tg.study("みなさん", "て", -3)
+tg.study("トラック", "く", -4)
+#tg.dump
+=end
+print tg.gen_ku(5).join
+print " "
+print tg.gen_ku(7).join
+print " "
+print tg.gen_ku(5).join
+print " "
+print tg.gen_ku(7).join
+print " "
+print tg.gen_ku(7).join
