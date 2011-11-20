@@ -1,6 +1,7 @@
 # -*- coding: cp932 -*-
 
 require 'words.rb'
+require 'study'
 
 class CategoryWListTable
   def initialize
@@ -189,31 +190,7 @@ class TankaGen
 end
 
 tg = TankaGen.new
-=begin
-tg.study("心", "という", 5)
-tg.study("伊", "喜ん", -5)
-tg.study("タグ", "問題", 0)
-tg.study("拍子", "を", 5)
-tg.study("みうら", "いい", 2)
-tg.study("いい", "詐欺", 4)
-tg.study("そ", "安藤", -5)
-tg.study("か", "く", -4)
-tg.study("さん", "学", -5)
-tg.study("を", "う", -5)
-tg.study("生活", "う", -5)
-tg.study("ハウス", "を", 5)
-tg.study("を", "ござい", -5)
-tg.study("ピックアップ", "い", -5)
-tg.study("才能", "て", 3)
-tg.study("いい", "だけ", 2)
-tg.study("大笑い", "を", 3)
-tg.study("いい", "伊", -4)
-tg.study("ライフ", "見", -4)
-tg.study("見", "詩", -3)
-tg.study("みなさん", "て", -3)
-tg.study("トラック", "く", -4)
-#tg.dump
-=end
+study_all(tg)
 print tg.gen_ku(5).join
 print " "
 print tg.gen_ku(7).join

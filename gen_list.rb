@@ -1,8 +1,12 @@
 # -*- coding: cp932 -*-
 require 'csv'
 list = {}
+std = Hash.new
+prev_word = nil
 File.foreach('words') do |lin|
-  lina = (CSV.parse(lin))[0]
+  lin2 = lin.gsub(/《.*?》/, "")
+  lina = (CSV.parse(lin2))[0]
+  nm = nil
   if lina[7] then
     nm, klass = lina[0].split(/\t/)
     sz = lina[7].size
@@ -31,10 +35,19 @@ File.foreach('words') do |lin|
       when /非自立/
         klsn = :Adj_Hijiritu
       end
+
+    else
+      nm = nil
     end
     if klsn then
       list[nm] = [sz, klsn.inspect]
     end
+
+    if prev_word and nm then
+      std[prev_word] ||= Hash.new(0)
+      std[prev_word][nm] += 1
+    end
+    prev_word = nm
   end
 end
 
@@ -46,3 +59,8 @@ list.each do |nm, rest|
 end
 print "}\n"
 
+std.each do |w0, w1list|
+  w1list.each do |w1, weight|
+    print("study('#{w0}', '#{w1}', #{weight})\n")
+  end
+end
