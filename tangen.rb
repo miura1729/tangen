@@ -146,7 +146,7 @@ class TankaGen
     end
   end
   
-  def gen_ku(n)
+  def gen_ku(n, prev_word = nil)
     prev_word = nil
     result = []
     rest = n
@@ -154,7 +154,11 @@ class TankaGen
       clen = 0
       word = nil
       begin
-        clen = (rand(rest / 2) + rand((rest - 1) / 2) + 1).to_i
+        if rest > 2 then
+          clen = (rand(rest / 2) + rand((rest - 1) / 2) + 1).to_i
+        else
+          clen = rest
+        end
         if prev_word then
           word = @translate_table[prev_word].get_next_word(clen)
         else
@@ -171,15 +175,14 @@ class TankaGen
 
   def study(w0, w1, weight)
     @translate_table[w0].study_word(w1, weight)
-    @translate_table[w0].study_category(w1, weight)
-    weight2 = Math.sqrt(weight.abs)
-    if weight < 0 then
-      weight2 = -weight2
-    end
+    weight2 = Math.sqrt(weight)
+    @translate_table[w0].study_category(w1, weight2)
     wcate = WORD_TABLE[w0][1]
+    weight3 = weight2 / WORD_TABLE.size
+
     WORD_TABLE.each do |word, info|
       if info[1] == wcate then
-        @translate_table[word].study_category(w1, weight2)
+        @translate_table[word].study_category(w1, weight3)
       end
     end
   end
@@ -191,12 +194,13 @@ end
 
 tg = TankaGen.new
 study_all(tg)
-print tg.gen_ku(5).join
-print " "
-print tg.gen_ku(7).join
-print " "
-print tg.gen_ku(5).join
-print " "
-print tg.gen_ku(7).join
-print " "
-print tg.gen_ku(7).join
+prev = nil
+10.times do
+  [5, 7, 5, 7, 7].each do |n|
+    res = tg.gen_ku(n, prev)
+    prev = res.last
+    print res.join
+    print " "
+  end
+  print "\n"
+end
